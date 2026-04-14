@@ -1,0 +1,27 @@
+# Environment
+.env
+.env.local
+
+# Venv
+venv/
+.venv/
+
+# Data (students add their own)
+data/*.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Cursor
+.cursor/
+
+# Claude Code
+.claude/conversations/
+
+# OS
+.DS_Store
+Thumbs.db
