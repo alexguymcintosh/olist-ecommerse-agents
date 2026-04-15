@@ -80,6 +80,7 @@ class BaseAgent(ABC):
             "risk_flags": risk_flags,
         }
 
+    # Brace-window extraction handles LLM prose prefix and trailing text more robustly than strip-then-loads
     def _parse_llm_response(self, raw: str) -> dict[str, Any]:
         """Extract first ``{`` through last ``}``, then ``json.loads``."""
         s = raw.strip()

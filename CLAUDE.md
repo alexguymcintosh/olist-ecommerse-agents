@@ -75,10 +75,10 @@ ConnectorOutput keys: timestamp, cross_domain_insights, strategic_recommendation
 - [x] Project structure scaffolded
 - [x] CEO plan complete (docs/specs/ceo-plan.md)
 - [x] Eng review complete — all gaps resolved
-- [ ] utils/schema.py
-- [ ] utils/validators.py
-- [ ] utils/base_agent.py
-- [ ] Customer Agent MVP + tests
+- [x] utils/schema.py
+- [x] utils/validators.py
+- [x] utils/base_agent.py
+- [x] Customer Agent MVP + tests
 - [ ] Product Agent MVP + tests
 - [ ] Seller Agent MVP + tests
 - [ ] run_all.py
