@@ -22,3 +22,8 @@ class ConnectorOutput(TypedDict):
 - `WalkForwardIteration.validation` is currently `dict` (untyped for MVP).
 - `WalkForwardResult.aggregate_accuracy` is currently `dict` (untyped for MVP).
 - Post-MVP: replace both with explicit TypedDict contracts in `utils/schema_geographic.py` and update tests accordingly.
+
+## Geographic v2 — LLM cost/latency optimization
+
+- `_predict_next_month_growth()` currently makes 25 LLM calls per iteration (5x5 grid).
+- Consider batching predictions into one LLM call per iteration to reduce cost and latency.
