@@ -34,6 +34,12 @@ def _build_real_data_for_integration() -> dict[str, pd.DataFrame]:
     products["product_category_name"] = products["product_category_name"].fillna(
         "beleza_saude"
     )
+    # Collapse to one category/state to reduce LLM call volume while keeping real-data wiring.
+    products["product_category_name"] = "beleza_saude"
+    customers = data["customers"].copy()
+    customers["customer_state"] = "RJ"
+    sellers = data["sellers"].copy()
+    sellers["seller_state"] = "RJ"
 
     # Add a single real-like row to introduce month 2018-10 into joined order-item history.
     seed_row = orders.iloc[[0]].copy()
@@ -50,15 +56,9 @@ def _build_real_data_for_integration() -> dict[str, pd.DataFrame]:
 
     data["products"] = products
     data["orders"] = orders
+    data["customers"] = customers
+    data["sellers"] = sellers
     return data
-
-
-def _mock_predict_growth(
-    self: GeographicAgent, state: str, category: str, momentum: float | None
-) -> tuple[float, str]:
-    if momentum is None or pd.isna(momentum):
-        return 0.0, "mock-fallback"
-    return float(momentum), "mock-momentum"
 
 
 def test_walk_forward_full_13_iterations_end_to_end(
@@ -66,9 +66,8 @@ def test_walk_forward_full_13_iterations_end_to_end(
 ) -> None:
     data = _build_real_data_for_integration()
     monkeypatch.setattr(
-        GeographicAgent,
-        "_predict_next_month_growth",
-        _mock_predict_growth,
+        "agents.geographic.geographic_agent.query_llm",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("offline test")),
     )
 
     result = run_walk_forward(
@@ -92,9 +91,8 @@ def test_walk_forward_full_13_iterations_end_to_end(
 def test_walk_forward_iteration_payload_shapes(monkeypatch, tmp_path: Path) -> None:
     data = _build_real_data_for_integration()
     monkeypatch.setattr(
-        GeographicAgent,
-        "_predict_next_month_growth",
-        _mock_predict_growth,
+        "agents.geographic.geographic_agent.query_llm",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("offline test")),
     )
 
     result = run_walk_forward(
