@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,132 @@ def _period_to_str(value: Any) -> str:
 def _sorted_months(joined_df: pd.DataFrame) -> list[pd.Period]:
     month_idx = pd.PeriodIndex(joined_df["month"].astype(str), freq="M")
     return sorted(month_idx.unique())
+
+
+def _compute_directional_accuracy(predicted_growth: float, actual_growth: float) -> bool:
+    return math.copysign(1.0, predicted_growth) == math.copysign(1.0, actual_growth)
+
+
+def _compute_pct_error(predicted_growth: float, actual_growth: float) -> float:
+    return abs(predicted_growth - actual_growth) / max(abs(actual_growth), 0.01)
+
+
+def _compute_actual_growth(
+    joined_df: pd.DataFrame,
+    state: str,
+    category: str,
+    prediction_month: str,
+) -> float | None:
+    pred_period = pd.Period(prediction_month, freq="M")
+    prev_period = pred_period - 1
+
+    scoped = joined_df[
+        (joined_df["customer_state"] == state)
+        & (joined_df["product_category_name_english"] == category)
+    ]
+    if scoped.empty:
+        return None
+
+    current = scoped[scoped["month"] == pred_period]
+    current_orders = int(current["order_id"].nunique())
+    if current_orders < 10:
+        return None
+
+    prev = scoped[scoped["month"] == prev_period]
+    current_revenue = float(pd.to_numeric(current["price"], errors="coerce").fillna(0.0).sum())
+    prev_revenue = float(pd.to_numeric(prev["price"], errors="coerce").fillna(0.0).sum())
+    if prev_revenue == 0.0:
+        return None
+
+    growth = (current_revenue - prev_revenue) / prev_revenue
+    if not math.isfinite(growth):
+        return None
+    return float(growth)
+
+
+def _score_iteration_predictions(
+    joined_df: pd.DataFrame,
+    prediction_month: str,
+    predictions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    items: list[dict[str, Any]] = []
+    for pred in predictions:
+        predicted_growth = float(pred.get("predicted_growth_pct", 0.0))
+        actual_growth = _compute_actual_growth(
+            joined_df,
+            state=str(pred.get("state", "")),
+            category=str(pred.get("category", "")),
+            prediction_month=prediction_month,
+        )
+
+        if actual_growth is None:
+            directional_accuracy: bool | None = None
+            pct_error: float | None = None
+        else:
+            directional_accuracy = _compute_directional_accuracy(
+                predicted_growth, actual_growth
+            )
+            pct_error = _compute_pct_error(predicted_growth, actual_growth)
+
+        items.append(
+            {
+                "state": str(pred.get("state", "")),
+                "category": str(pred.get("category", "")),
+                "predicted_growth": predicted_growth,
+                "actual_growth": actual_growth,
+                "directional_accuracy": directional_accuracy,
+                "pct_error": pct_error,
+            }
+        )
+    return {"prediction_month": prediction_month, "items": items}
+
+
+def _compute_aggregate_accuracy(iterations: list[WalkForwardIteration]) -> dict[str, Any]:
+    directional_values: list[float] = []
+    pct_errors: list[float] = []
+
+    for iteration in iterations:
+        validation = iteration.get("validation", {})
+        if not isinstance(validation, dict):
+            continue
+        items = validation.get("items", [])
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            directional = item.get("directional_accuracy")
+            pct_error = item.get("pct_error")
+            if isinstance(directional, bool) and pct_error is not None:
+                directional_values.append(1.0 if directional else 0.0)
+            if isinstance(pct_error, (int, float)) and math.isfinite(float(pct_error)):
+                pct_errors.append(float(pct_error))
+
+    scored_predictions = len(directional_values)
+    if scored_predictions == 0:
+        return {
+            "avg_directional_accuracy": 0.0,
+            "avg_pct_error": 0.0,
+            "scored_predictions": 0,
+        }
+
+    return {
+        "avg_directional_accuracy": float(sum(directional_values) / scored_predictions),
+        "avg_pct_error": float(sum(pct_errors) / max(len(pct_errors), 1)),
+        "scored_predictions": scored_predictions,
+    }
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, tuple):
+        return tuple(_json_safe(v) for v in value)
+    return value
 
 
 def run_walk_forward(
@@ -101,16 +228,26 @@ def run_walk_forward(
             "predictions": output["predictions"],
             "supply_gaps": output["supply_gaps"],
             "ranked_opportunities": output["ranked_opportunities"],
-            "validation": {} if validate else {},
+            "validation": {},
         }
         iterations.append(iteration_payload)
+
+        # After iteration N>1, score iteration N-1 predictions against actuals.
+        if validate and len(iterations) > 1:
+            previous_iteration = iterations[-2]
+            previous_iteration["validation"] = _score_iteration_predictions(
+                joined_df=joined,
+                prediction_month=previous_iteration["prediction_month"],
+                predictions=previous_iteration["predictions"],
+            )
+
         previous_prediction = output["predictions"]
 
     result: WalkForwardResult = {
         "completed_iterations": len(iterations),
         "total_iterations": max_iterations,
         "iterations": iterations,
-        "aggregate_accuracy": {},
+        "aggregate_accuracy": _compute_aggregate_accuracy(iterations) if validate else {},
     }
 
     out_base = output_dir if output_dir is not None else Path("outputs")
@@ -118,7 +255,7 @@ def run_walk_forward(
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M")
     output_path = out_base / f"walk_forward_{ts}.json"
     with output_path.open("w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2)
+        json.dump(_json_safe(result), f, indent=2)
 
     if ranked and iterations:
         print(json.dumps(iterations[-1]["ranked_opportunities"], indent=2))
