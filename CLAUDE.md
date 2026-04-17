@@ -1,88 +1,83 @@
-# Olist AI Club — Agent System
+# Olist AI Club — Geographic Demand Agent System
 
 ## Project
-Multi-agent e-commerce analysis system built on the Olist Brazilian dataset (100k orders, 2016-2018). Four agents: Customer, Product, Seller, Connector. Teaching vehicle for agentic problem-solving skills transferable to any industry.
+Multi-agent e-commerce intelligence system built on the Olist Brazilian dataset (100k orders, 2016-2018). Teaching vehicle for agentic problem-solving skills transferable to any industry.
 
-## Mission
-Build domain-expert agents that independently analyse their data slice, then discover how to connect them into a Connector Agent that surfaces cross-domain business insights.
+## Problem Statement
+Predict which product category will grow in which Brazilian state next month, identify the seller supply gap, and recommend what Olist should do about it.
 
-## Architecture
-- Customer Agent: demand signal (orders, customers, reviews, payments)
-- Product Agent: catalog intelligence (products, categories, order_items)
-- Seller Agent: supply performance (sellers, order_items, reviews)
-- Connector Agent: NOT YET DEFINED — emerges from domain agent outputs
+## Focus Parameters (change these to adjust analysis scope)
+FOCUS_STATES = ["SP", "RJ", "MG", "RS", "PR"]  # top 5 by order volume
+FOCUS_CATEGORIES = ["health_beauty", "bed_bath_table", "sports_leisure", "watches_gifts", "computers_accessories"]  # top 5 by revenue
 
-## Build Order (from CEO/Eng plan)
-1. utils/schema.py — TypedDicts, zero runtime deps, build FIRST
-2. utils/validators.py — validate_output()
-3. utils/base_agent.py — BaseAgent with shared run() logic
-4. Domain agents: Customer → Product → Seller (each with tests)
-5. run_all.py — orchestrator
-6. ConnectorAgent — last, after all domain agents pass tests
+## Architecture — Current MVP (v1)
+Four domain agents producing structured JSON outputs:
+- CustomerAgent: repeat rate, delivery, reviews, payments
+- ProductAgent: category revenue, volume, avg order value
+- SellerAgent: seller count, SP concentration, Pareto concentration
+- ConnectorAgent: cross-domain synthesis and briefing
 
-## Stack
-- Language: Python 3.9+
-- LLM calls: utils/openrouter_client.py (single entry point, swap model for RnD vs prod)
-- RnD model: deepseek/deepseek-v3.2 via OpenRouter (cheap, fast)
-- Prod model: anthropic/claude-sonnet-4-5 via OpenRouter
-- Data: utils/data_loader.py (always sample before sending to LLM)
-- Visual flows: n8n (separate, mirrors Python agents)
-- Planning: BMAD docs in /docs/bmad, specs in /docs/specs
-- Workflow: G-Stack slash commands for role-based development
-- Testing: pytest with conftest.py fixtures + pytest.ini
+Status: complete, tested, run_all.py working end to end.
 
-## Hard Rules (non-negotiable)
-1. Pandas computes ALL numeric metrics from the FULL DataFrame — LLM only narrates pre-computed facts
-2. All LLM calls go through utils/openrouter_client.py — never hardcode API calls in agents
-3. Use RND_MODEL for exploration, PROD_MODEL only for final agent builds
-4. Each agent produces a structured DomainAgentOutput (see schema.py) for the Connector to consume
-5. Write tests before marking any agent complete — pytest must be green
-6. Every student maintains a full working copy of all 4 agents
-7. Use datetime.now(timezone.utc) — never datetime.utcnow() (deprecated Python 3.12+)
-8. ConnectorAgent does NOT subclass BaseAgent — different interface
-9. Add __init__.py to all agent and utils folders
+## Architecture — Next MVP (v2 Geographic Demand Agent)
+Unit of analysis: state × category × month (25 pairs: 5 states × 5 categories)
+Prediction: which category grows in which state next month
+Walk-forward loop: run month 1→2, store result, run month 2→3 with memory, repeat across 25 months
+Memory: SQLite — stores prediction, actual, error, reasoning per month per state-category pair
+Build order:
+1. feature_table.py — state × category × month aggregations from full dataset
+2. seller_gap.py — demand vs seller supply per state-category
+3. GeographicAgent — wraps feature table + seller gap, produces structured JSON
+4. memory.py — SQLite read/write for prediction history
+5. walk_forward.py — loop orchestrator, runs GeographicAgent month by month
+6. Connector ranking — ranks opportunities by gap size × revenue potential
+
+No ML yet. Pure pandas + LLM reasoning + memory loop.
+
+## Tech Stack
+- Language: Python 3.12
+- LLM: MiniMax M2.7 via Ollama
+  - ANTHROPIC_AUTH_TOKEN=ollama
+  - ANTHROPIC_BASE_URL=http://localhost:11434
+  - ANTHROPIC_MODEL=minimax-m2.7:cloud
+- Claude Code + G-Stack: architectural decisions (/plan-ceo-review, /plan-eng-review, /engineer, /qa, /ship)
+- BMAD in Cursor: story-by-story implementation
+- Codex: second opinion and boilerplate
+- Cursor: implementation
+- Data: utils/data_loader.py — always sample before sending to LLM
+- All LLM calls: utils/openrouter_client.py — never hardcode API calls
+
+## Hard Rules
+1. Pandas computes ALL metrics from full DataFrame — LLM only narrates pre-computed facts
+2. All LLM calls go through utils/openrouter_client.py
+3. Focus parameters live in config.py — change one file, entire analysis shifts
+4. Each agent produces structured JSON consumed by the next layer
+5. Tests required before any agent marked complete
+6. Use datetime.now(timezone.utc) — never utcnow()
 
 ## Key Data Facts
-- 96k customers, 3095 sellers, 32951 products, 73 categories
-- $16M total revenue, avg order $161
+- 96k customers, 3095 sellers, 32951 products, 73 categories, 25 months (Sep 2016 - Oct 2018)
+- $16M revenue, avg order $161
 - 0% repeat customer rate — biggest business problem
-- Delivery speed is #1 review score driver (4.4 stars <1wk vs 2.2 stars >4wk)
-- 60% of sellers concentrated in São Paulo state
-- Top revenue: health_beauty ($1.26M), watches_gifts ($1.2M)
-- NaN risk: delivery dates can be null (handle in CustomerAgent)
-- NaN risk: product category join can produce null top_category (fillna in ProductAgent)
-
-## Output Schema (utils/schema.py)
-DomainAgentOutput keys: agent, timestamp, insights, metrics, top_opportunity, risk_flags
-ConnectorOutput keys: timestamp, cross_domain_insights, strategic_recommendation, priority_actions, briefing
-
-## G-Stack Usage
-- /plan-ceo-review — scope and strategy decisions
-- /plan-eng-review — architecture, data flow, edge cases
-- /engineer — implement agent logic
-- /qa — test agent outputs
-- /ship — commit completed work
-
-## BMAD Workflow
-- @bmad-agent-pm — write one story at a time
-- @bmad-agent-dev — implement + test that story
-- pytest — confirm green before next story
-- Never implement more than one story at a time
+- Delivery speed = #1 review driver (4.4 stars <1wk vs 2.2 stars >4wk)
+- 60% sellers in SP, customers nationwide — core geographic mismatch
+- Top revenue: health_beauty $1.26M, watches_gifts $1.2M
 
 ## Current Status
-- [x] EDA complete — all key signals identified
-- [x] OpenRouter connected via n8n (tested)
-- [x] Project structure scaffolded
-- [x] CEO plan complete (docs/specs/ceo-plan.md)
-- [x] Eng review complete — all gaps resolved
-- [x] utils/schema.py
-- [x] utils/validators.py
-- [x] utils/base_agent.py
-- [x] Customer Agent MVP + tests
-- [ ] Product Agent MVP + tests
-- [ ] Seller Agent MVP + tests
-- [ ] run_all.py
-- [ ] Connector Agent (defined after domain MVPs)
+- [x] EDA complete
+- [x] OpenRouter connected via n8n
+- [x] v1 MVP complete — all 4 agents running, tests passing, run_all.py working
+- [x] Dashboard visualisation (outputs/dashboard.html)
+- [ ] config.py with focus parameters
+- [ ] feature_table.py
+- [ ] seller_gap.py
+- [ ] GeographicAgent
+- [ ] memory.py (SQLite)
+- [ ] walk_forward.py
+- [ ] Connector ranking
+
+## Repo
+github.com/alexguymcintosh/olist-ecommerse-agents
 
 ## Team
 AI Club — transparent development in Discord. All work shared. Everyone maintains full system.
