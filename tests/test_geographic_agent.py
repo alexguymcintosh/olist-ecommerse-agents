@@ -12,7 +12,6 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 from agents.geographic.geographic_agent import GeographicAgent
-from utils.base_agent import BaseAgent
 
 
 def _build_core_data() -> dict[str, pd.DataFrame]:
@@ -261,7 +260,7 @@ def test_run_returns_geographic_output_contract(monkeypatch) -> None:
     out = agent.run(
         iteration=2, training_window=("2016-10", "2016-11"), prediction_month="2016-12"
     )
-    assert not issubclass(GeographicAgent, BaseAgent)
+    assert GeographicAgent.AGENT_NAME == "geographic"
     assert out["agent"] == "geographic"
     assert isinstance(out["predictions"], list)
     assert isinstance(out["supply_gaps"], list)

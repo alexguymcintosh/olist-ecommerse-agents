@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from agents.geographic.geographic_agent import GeographicAgent
+from utils.config import MAX_ITERATIONS, TRAINING_WINDOW_MONTHS
 from utils.data_loader import temporal_window
 from utils.schema_geographic import WalkForwardIteration, WalkForwardResult
 
@@ -171,8 +172,8 @@ def run_walk_forward(
     agent = agent_class(data=data)
     joined = agent._load_geographic_data()
     months = _sorted_months(joined)
-    max_iterations = max(0, len(months) - 12)
-    max_iterations = min(max_iterations, 13)
+    max_iterations = max(0, len(months) - TRAINING_WINDOW_MONTHS)
+    max_iterations = min(max_iterations, MAX_ITERATIONS)
 
     if max_iterations <= 0:
         result: WalkForwardResult = {
@@ -199,7 +200,7 @@ def run_walk_forward(
 
     for iteration in range(effective_start, effective_end + 1):
         train_start_period = months[iteration - 1]
-        train_end_period = train_start_period + 11  # 12 months inclusive
+        train_end_period = train_start_period + (TRAINING_WINDOW_MONTHS - 1)
         prediction_period = train_end_period + 1
 
         train_start = _period_to_str(train_start_period)

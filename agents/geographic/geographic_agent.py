@@ -12,6 +12,7 @@ import pandas as pd
 
 from utils.data_loader import load_all
 from utils.openrouter_client import RND_MODEL, build_analyst_prompt, query_llm
+from utils.config import FOCUS_CATEGORIES, FOCUS_STATES
 from utils.schema_geographic import (
     GeographicMetrics,
     GeographicOutput,
@@ -251,7 +252,15 @@ class GeographicAgent:
                 * pred["confidence_score"]
                 * gap["supply_gap_severity"]
             )
-            urgency = "HIGH" if composite >= 1.0 else "MEDIUM" if composite >= 0.2 else "LOW"
+            urgency = "HIGH" if composite >= 100 else "MEDIUM" if composite >= 10 else "LOW"
+            current_orders = int(gap["current_month_order_count"])
+            if gap["predicted_order_volume"] is None:
+                predicted_order_volume: float | None = None
+            else:
+                predicted_order_volume = max(
+                    0.0,
+                    float(current_orders) * (1.0 + float(pred["predicted_growth_pct"])),
+                )
             ranked.append(
                 {
                     "rank": 0,
@@ -260,7 +269,7 @@ class GeographicAgent:
                     "predicted_growth_pct": float(pred["predicted_growth_pct"]),
                     "current_sellers": gap["current_sellers"],
                     "current_month_order_count": gap["current_month_order_count"],
-                    "predicted_order_volume": gap["predicted_order_volume"],
+                    "predicted_order_volume": predicted_order_volume,
                     "supply_gap_ratio": gap["supply_gap_ratio"],
                     "supply_gap_severity": gap["supply_gap_severity"],
                     "composite_score": composite,
@@ -288,8 +297,8 @@ class GeographicAgent:
         if training_df is None:
             training_df = joined
 
-        states = self._identify_top5_states(training_df)
-        categories = self._identify_top5_categories(training_df)
+        states = FOCUS_STATES
+        categories = FOCUS_CATEGORIES
         growth_matrix, momentum_scores, order_counts, sparse_flags = self._compute_growth_matrix(
             training_df, states, categories
         )
