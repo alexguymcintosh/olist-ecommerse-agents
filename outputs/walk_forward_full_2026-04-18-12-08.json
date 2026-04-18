@@ -1,0 +1,35 @@
+{
+  "timestamp": "2026-04-18T12:08:29.564709+00:00",
+  "db_path": "memory.db",
+  "configured_max_iterations": 2,
+  "effective_iterations": 2,
+  "max_available_iterations": 12,
+  "training_window_months": 12,
+  "states": [
+    "SP",
+    "RJ",
+    "MG",
+    "RS",
+    "PR"
+  ],
+  "categories": [
+    "health_beauty",
+    "bed_bath_table",
+    "sports_leisure",
+    "watches_gifts",
+    "computers_accessories"
+  ],
+  "iterations": [
+    {
+      "iteration": 1,
+      "status": "error",
+      "error": "Null ratio for product_category_name_english is >= 1% after join."
+    },
+    {
+      "iteration": 2,
+      "status": "error",
+      "error": "Null ratio for product_category_name_english is >= 1% after join."
+    }
+  ],
+  "final_validation": null
+}

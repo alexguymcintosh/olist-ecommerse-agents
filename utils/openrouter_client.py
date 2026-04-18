@@ -1,6 +1,11 @@
 import os
 import requests
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # pragma: no cover - optional dependency fallback
+    def load_dotenv() -> None:
+        return None
 
 load_dotenv()
 

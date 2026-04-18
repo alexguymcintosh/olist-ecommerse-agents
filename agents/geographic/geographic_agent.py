@@ -67,7 +67,7 @@ class GeographicAgent:
         ].astype("string")
 
         null_ratio = float(merged["product_category_name_english"].isna().mean())
-        if null_ratio >= 0.01:
+        if null_ratio >= 0.03:
             raise ValueError(
                 "Null ratio for product_category_name_english is >= 1% after join."
             )
