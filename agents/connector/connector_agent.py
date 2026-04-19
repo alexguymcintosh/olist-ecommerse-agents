@@ -7,7 +7,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 from utils.config import FOCUS_CATEGORIES, FOCUS_STATES
-from utils.openrouter_client import RND_MODEL, build_analyst_prompt, query_llm
+from utils.openrouter_client import (
+    RND_MODEL,
+    build_analyst_prompt,
+    parse_batch_llm_response,
+    query_llm,
+)
 from utils.schema_agents import (
     ConnectorDecision,
     ConnectorOutput,
@@ -139,14 +144,13 @@ class ConnectorAgent:
     def _parse_connector_response(
         self,
         *,
-        raw: str,
+        parsed: dict[str, Any],
         month: str,
         state: str,
         category: str,
         composite_score: float,
         risk_flags: list[str],
     ) -> ConnectorDecision:
-        parsed = self._extract_json_dict(raw)
         confidence = str(parsed.get("confidence", "LOW")).upper()
         if confidence not in {"HIGH", "MEDIUM", "LOW"}:
             confidence = "LOW"
@@ -179,6 +183,114 @@ class ConnectorAgent:
             "risk_flags": self._dedupe_flags(risk_flags),
         }
 
+    def _batch_connector_decisions(
+        self, month: str, items: list[dict[str, Any]]
+    ) -> dict[tuple[str, str], ConnectorDecision]:
+        batch_payload: list[dict[str, Any]] = []
+        for item in items:
+            batch_payload.append(
+                {
+                    "state": item["state"],
+                    "category": item["category"],
+                    "month": month,
+                    "composite_score": round(item["composite_score"], 4),
+                    "geo_predicted_growth_pct": round(
+                        self._safe_float(item["geo"].get("predicted_growth_pct"), 0.0), 4
+                    ),
+                    "geo_confidence": str(item["geo"].get("confidence", "LOW")),
+                    "geo_confidence_score": round(
+                        self._safe_float(item["geo"].get("confidence_score"), 0.0), 4
+                    ),
+                    "supply_confidence": str(
+                        item["supply"].get("supply_confidence", "WEAK")
+                    ),
+                    "customer_readiness": str(
+                        item["customer"].get("readiness", "LOW")
+                    ),
+                    "logistics_feasibility": str(
+                        item["logistics"].get("feasibility", "WEAK")
+                    ),
+                    "supply_reasoning": str(item["supply"].get("reasoning", "")),
+                    "customer_reasoning": str(item["customer"].get("reasoning", "")),
+                    "logistics_reasoning": str(item["logistics"].get("reasoning", "")),
+                    "prev_outcome": item["prev_outcome_text"],
+                }
+            )
+
+        question = (
+            "Assess the best action for each item. "
+            "Return ONLY a JSON array where each object has exactly: "
+            '{"state": <string>, "category": <string>, "decision": <string>, '
+            '"confidence": "HIGH|MEDIUM|LOW", "urgency": "HIGH|MEDIUM|LOW", '
+            '"reasoning": <string>, "challenge": <string>, '
+            '"most_predictive_agent": "geographic|supply_quality|customer_readiness|logistics"}. '
+            "One entry per input item in any order."
+        )
+        try:
+            messages = build_analyst_prompt(json.dumps(batch_payload, indent=2), question)
+            raw = query_llm(messages, model=self.model, max_tokens=4000)
+            parsed_items = parse_batch_llm_response(raw, items)
+            results: dict[tuple[str, str], ConnectorDecision] = {}
+            for item, parsed in zip(items, parsed_items):
+                state = item["state"]
+                category = item["category"]
+                composite_score = item["composite_score"]
+                risk_flags = item["risk_flags"]
+
+                if composite_score <= 0:
+                    decision = {
+                        "state": state,
+                        "category": category,
+                        "month": month,
+                        "composite_score": composite_score,
+                        "decision": "no_action",
+                        "confidence": "LOW",
+                        "urgency": "LOW",
+                        "reasoning": "Composite score is non-positive; no growth opportunity.",
+                        "challenge": "Could miss early inflection if data lags.",
+                        "most_predictive_agent": "geographic",
+                        "risk_flags": self._dedupe_flags(risk_flags),
+                    }
+                elif parsed is not None and isinstance(parsed, dict):
+                    try:
+                        decision = self._parse_connector_response(
+                            parsed=parsed,
+                            month=month,
+                            state=state,
+                            category=category,
+                            composite_score=composite_score,
+                            risk_flags=risk_flags,
+                        )
+                    except Exception:
+                        decision = self._fallback_decision(
+                            month=month,
+                            state=state,
+                            category=category,
+                            composite_score=composite_score,
+                            risk_flags=risk_flags,
+                        )
+                else:
+                    decision = self._fallback_decision(
+                        month=month,
+                        state=state,
+                        category=category,
+                        composite_score=composite_score,
+                        risk_flags=risk_flags,
+                    )
+                results[(state, category)] = decision
+            return results
+        except Exception:
+            return {
+                (item["state"], item["category"]): self._fallback_decision(
+                    month=month,
+                    state=item["state"],
+                    category=item["category"],
+                    composite_score=item["composite_score"],
+                    risk_flags=item["risk_flags"],
+                )
+                for item in items
+            }
+
     def run(
         self,
         month: str,
@@ -187,6 +299,8 @@ class ConnectorAgent:
         customer_outputs: list[CustomerReadinessOutput],
         logistics_outputs: list[LogisticsOutput],
         prev_month: str | None = None,
+        states: list[str] | None = None,
+        categories: list[str] | None = None,
     ) -> ConnectorOutput:
         geo_by_pair = {(x["state"], x["category"]): x for x in geographic_outputs}
         supply_by_pair = {(x["state"], x["category"]): x for x in supply_outputs}
@@ -195,9 +309,13 @@ class ConnectorAgent:
 
         timestamp = datetime.now(timezone.utc).isoformat()
         decisions: list[ConnectorDecision] = []
+        batch_items: list[dict[str, Any]] = []
 
-        for state in FOCUS_STATES:
-            for category in FOCUS_CATEGORIES:
+        selected_states = states if states is not None else FOCUS_STATES
+        selected_categories = categories if categories is not None else FOCUS_CATEGORIES
+
+        for state in selected_states:
+            for category in selected_categories:
                 pair = (state, category)
                 geo = geo_by_pair.get(
                     pair,
@@ -283,61 +401,46 @@ class ConnectorAgent:
                     if isinstance(flags, list) and "agent_failed" in flags:
                         risk_flags.append("agent_failed")
 
-                if composite_score <= 0:
-                    decision: ConnectorDecision = {
+                batch_items.append(
+                    {
                         "state": state,
                         "category": category,
-                        "month": month,
+                        "geo": geo,
+                        "supply": supply,
+                        "customer": customer,
+                        "logistics": logistics,
                         "composite_score": composite_score,
-                        "decision": "no_action",
-                        "confidence": "LOW",
-                        "urgency": "LOW",
-                        "reasoning": "Composite score is non-positive; no growth opportunity.",
-                        "challenge": "Could miss early inflection if data lags.",
-                        "most_predictive_agent": "geographic",
-                        "risk_flags": self._dedupe_flags(risk_flags),
+                        "prev_outcome_text": prev_outcome_text,
+                        "risk_flags": risk_flags,
                     }
-                else:
-                    try:
-                        messages = self._build_prompt(
-                            month=month,
-                            state=state,
-                            category=category,
-                            composite_score=composite_score,
-                            geo=geo,
-                            supply=supply,
-                            customer=customer,
-                            logistics=logistics,
-                            prev_outcome_text=prev_outcome_text,
-                        )
-                        raw = query_llm(messages, model=self.model, max_tokens=350)
-                        decision = self._parse_connector_response(
-                            raw=raw,
-                            month=month,
-                            state=state,
-                            category=category,
-                            composite_score=composite_score,
-                            risk_flags=risk_flags,
-                        )
-                    except Exception:
-                        decision = self._fallback_decision(
-                            month=month,
-                            state=state,
-                            category=category,
-                            composite_score=composite_score,
-                            risk_flags=risk_flags,
-                        )
-
-                self.memory.write_row(
-                    state,
-                    category,
-                    month,
-                    conn_decision=decision["decision"],
-                    conn_confidence=decision["confidence"],
-                    conn_reasoning=decision["reasoning"],
-                    conn_most_predictive_agent=decision["most_predictive_agent"],
                 )
-                decisions.append(decision)
+
+        batch_decisions = self._batch_connector_decisions(month, batch_items)
+
+        for item in batch_items:
+            state = item["state"]
+            category = item["category"]
+            decision = batch_decisions.get(
+                (state, category),
+                self._fallback_decision(
+                    month=month,
+                    state=state,
+                    category=category,
+                    composite_score=item["composite_score"],
+                    risk_flags=item["risk_flags"],
+                ),
+            )
+
+            self.memory.write_row(
+                state,
+                category,
+                month,
+                conn_decision=decision["decision"],
+                conn_confidence=decision["confidence"],
+                conn_reasoning=decision["reasoning"],
+                conn_most_predictive_agent=decision["most_predictive_agent"],
+            )
+            decisions.append(decision)
 
         decisions_sorted = sorted(
             decisions, key=lambda x: x["composite_score"], reverse=True

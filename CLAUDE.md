@@ -216,14 +216,19 @@ outputs/
 - [x] walk_forward.py complete and tested (13 iterations)
 - [x] Shared memory schema designed
 - [x] Directory structure defined
-- [ ] utils/config.py
-- [ ] utils/memory.py
-- [ ] utils/schema_agents.py
-- [ ] Supply Quality Agent
-- [ ] Customer Readiness Agent
-- [ ] Logistics Agent
-- [ ] Connector Agent
-- [ ] Integration test — all 5 agents × 13 iterations
+- [x] utils/config.py
+- [x] utils/memory.py
+- [x] utils/schema_agents.py
+- [x] Supply Quality Agent
+- [x] Customer Readiness Agent
+- [x] Logistics Agent
+- [x] Connector Agent
+- [x] walk_forward_full.py — 5-agent orchestrator (not in original directory spec)
+- [x] dashboard.py — real-time ops dashboard, port 5001 (VIZ-01)
+- [x] memory_viz.py — memory visualisation report (VIZ-02)
+- [x] perf_viz.py — performance visualisation report (VIZ-03)
+- [x] All 84 tests passing
+- [ ] Integration test — all 5 agents × 13 iterations (only 5 iterations run to date)
 
 ## Repo
 github.com/alexguymcintosh/olist-ecommerse-agents

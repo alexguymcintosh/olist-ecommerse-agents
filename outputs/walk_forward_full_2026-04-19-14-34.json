@@ -1,23 +1,15 @@
 {
-  "timestamp": "2026-04-18T12:32:07.800356+00:00",
-  "db_path": "memory.db",
+  "timestamp": "2026-04-19T14:34:28.373158+00:00",
+  "db_path": "memory_my-run-001.db",
   "configured_max_iterations": 2,
   "effective_iterations": 2,
   "max_available_iterations": 12,
   "training_window_months": 12,
   "states": [
-    "SP",
-    "RJ",
-    "MG",
-    "RS",
-    "PR"
+    "SP"
   ],
   "categories": [
-    "health_beauty",
-    "bed_bath_table",
-    "sports_leisure",
-    "watches_gifts",
-    "computers_accessories"
+    "health_beauty"
   ],
   "iterations": [
     {
@@ -39,17 +31,17 @@
       "prediction_month": "2017-10",
       "status": "ok",
       "validation": {
-        "validated": 25,
-        "correct": 10,
-        "incorrect": 15,
+        "validated": 1,
+        "correct": 1,
+        "incorrect": 0,
         "unknown": 0
       }
     }
   ],
   "final_validation": {
-    "validated": 24,
-    "correct": 9,
-    "incorrect": 15,
-    "unknown": 1
+    "validated": 1,
+    "correct": 0,
+    "incorrect": 1,
+    "unknown": 0
   }
 }

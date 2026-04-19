@@ -1,0 +1,197 @@
+{
+  "timestamp": "2026-04-19T14:32:52.634026+00:00",
+  "db_path": "memory_2026-04-19-14-04.db",
+  "configured_max_iterations": 12,
+  "effective_iterations": 12,
+  "max_available_iterations": 12,
+  "training_window_months": 12,
+  "states": [
+    "SP"
+  ],
+  "categories": [
+    "health_beauty"
+  ],
+  "iterations": [
+    {
+      "iteration": 1,
+      "training_window": [
+        "2016-09",
+        "2017-08"
+      ],
+      "prediction_month": "2017-09",
+      "status": "ok",
+      "validation": null
+    },
+    {
+      "iteration": 2,
+      "training_window": [
+        "2016-10",
+        "2017-09"
+      ],
+      "prediction_month": "2017-10",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 1,
+        "incorrect": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 3,
+      "training_window": [
+        "2016-12",
+        "2017-11"
+      ],
+      "prediction_month": "2017-12",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 0,
+        "incorrect": 1,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 4,
+      "training_window": [
+        "2017-01",
+        "2017-12"
+      ],
+      "prediction_month": "2018-01",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 0,
+        "incorrect": 1,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 5,
+      "training_window": [
+        "2017-02",
+        "2018-01"
+      ],
+      "prediction_month": "2018-02",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 1,
+        "incorrect": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 6,
+      "training_window": [
+        "2017-03",
+        "2018-02"
+      ],
+      "prediction_month": "2018-03",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 1,
+        "incorrect": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 7,
+      "training_window": [
+        "2017-04",
+        "2018-03"
+      ],
+      "prediction_month": "2018-04",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 0,
+        "incorrect": 1,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 8,
+      "training_window": [
+        "2017-05",
+        "2018-04"
+      ],
+      "prediction_month": "2018-05",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 1,
+        "incorrect": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 9,
+      "training_window": [
+        "2017-06",
+        "2018-05"
+      ],
+      "prediction_month": "2018-06",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 1,
+        "incorrect": 0,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 10,
+      "training_window": [
+        "2017-07",
+        "2018-06"
+      ],
+      "prediction_month": "2018-07",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 0,
+        "incorrect": 1,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 11,
+      "training_window": [
+        "2017-08",
+        "2018-07"
+      ],
+      "prediction_month": "2018-08",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 0,
+        "incorrect": 1,
+        "unknown": 0
+      }
+    },
+    {
+      "iteration": 12,
+      "training_window": [
+        "2017-09",
+        "2018-08"
+      ],
+      "prediction_month": "2018-09",
+      "status": "ok",
+      "validation": {
+        "validated": 1,
+        "correct": 0,
+        "incorrect": 1,
+        "unknown": 0
+      }
+    }
+  ],
+  "final_validation": {
+    "validated": 0,
+    "correct": 0,
+    "incorrect": 0,
+    "unknown": 1
+  }
+}

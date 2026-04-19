@@ -1,0 +1,62 @@
+{
+  "iteration": 10,
+  "training_window": [
+    "2017-07",
+    "2018-06"
+  ],
+  "prediction_month": "2018-07",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 0,
+    "incorrect": 1,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-07",
+      "composite_score": 0.040424999999999996,
+      "decision": "SCALE_INITIATIVE",
+      "confidence": "HIGH",
+      "urgency": "MEDIUM",
+      "reasoning": "Composite score (0.0404) indicates growth. Geographic agent predicts 5.5% demand growth with MEDIUM confidence. Supply metrics improved (seller count +15.2%, churn decreased, delivery time improved). Customer readiness is HIGH with order volume up 6.29% and high-value customer growth. Logistics remains STRONG with 93.76% on-time delivery.",
+      "challenge": "Persistent churn risk (23.05%) and moderate cross-state dependency (26.77%) require monitoring.",
+      "most_predictive_agent": "geographic",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "MEDIUM",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "HIGH",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 39.43,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 34.33,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 9.54,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 21.85,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 5.91,
+      "llm_calls": 1
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "iteration": 7,
+  "training_window": [
+    "2017-04",
+    "2018-03"
+  ],
+  "prediction_month": "2018-04",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 0,
+    "incorrect": 1,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-04",
+      "composite_score": 13.407499999999999,
+      "decision": "FULL INVESTMENT",
+      "confidence": "HIGH",
+      "urgency": "HIGH",
+      "reasoning": "Composite score (13.41) and high predicted growth (17.3%) indicate strong market potential. Logistics is strong (92.16% on-time), supply is adequate with seller growth (+6.2%), and high-value customers grew 19.4%.",
+      "challenge": "Customer retention collapsed (repeat rate 0.79%), indicating core loyalty failure despite volume growth.",
+      "most_predictive_agent": "geographic",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "MEDIUM",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 198.52,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 11.23,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 6.84,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 4.77,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 4.56,
+      "llm_calls": 1
+    }
+  }
+}

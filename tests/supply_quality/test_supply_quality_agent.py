@@ -260,7 +260,8 @@ def test_sparse_pair_returns_sparse_data_and_skips_llm(monkeypatch) -> None:
     )
     assert "sparse_data" in out["risk_flags"]
     assert out["supply_confidence"] == "WEAK"
-    assert called["count"] == 24
+    # One batch call covers all 24 non-sparse pairs (the 25th is sparse and skipped).
+    assert called["count"] == 1
 
 
 def test_llm_parse_failure_returns_agent_failed_fallback(monkeypatch) -> None:

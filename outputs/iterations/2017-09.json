@@ -1,0 +1,57 @@
+{
+  "iteration": 1,
+  "training_window": [
+    "2016-09",
+    "2017-08"
+  ],
+  "prediction_month": "2017-09",
+  "status": "ok",
+  "validation": null,
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2017-09",
+      "composite_score": 3.5649999999999995,
+      "decision": "EXPAND",
+      "confidence": "HIGH",
+      "urgency": "MEDIUM",
+      "reasoning": "Strong geographic growth forecast (4.6% with HIGH confidence), excellent logistics (92.66% on-time delivery), and robust sales growth (+25.2%). Composite score of 3.565 indicates solid overall performance.",
+      "challenge": "Customer retention is weak (3.02% repeat rate) and supply stability has medium churn risk (29.2%), creating reliance on one-time financed purchases.",
+      "most_predictive_agent": "geographic",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "MEDIUM",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 246.35,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 6.22,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 2.92,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 4.1,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 3.34,
+      "llm_calls": 1
+    }
+  }
+}

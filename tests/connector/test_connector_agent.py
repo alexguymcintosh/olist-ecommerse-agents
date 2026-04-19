@@ -199,7 +199,7 @@ def test_follow_up_triggered_when_top_dominates(monkeypatch: pytest.MonkeyPatch)
 
     def _fake_llm(*_a, **_k) -> str:
         calls["count"] += 1
-        if calls["count"] <= 25:
+        if calls["count"] == 1:
             return '{"decision":"act","confidence":"HIGH","urgency":"HIGH","reasoning":"ok","challenge":"none","most_predictive_agent":"geographic"}'
         return "follow-up answer"
 

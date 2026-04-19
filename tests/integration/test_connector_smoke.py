@@ -106,7 +106,7 @@ def _build_inputs(*, failed: bool = False) -> tuple[list[dict], list[dict], list
 def test_connector_smoke_25_decisions_sorted_with_follow_up_paths(monkeypatch) -> None:
     def _llm_trigger(*_args, **_kwargs) -> str:
         _llm_trigger.calls += 1
-        if _llm_trigger.calls <= 25:
+        if _llm_trigger.calls == 1:
             return '{"decision":"act","confidence":"HIGH","urgency":"HIGH","reasoning":"ok","challenge":"none","most_predictive_agent":"geographic"}'
         return "follow-up answer"
 

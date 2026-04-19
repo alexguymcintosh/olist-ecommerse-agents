@@ -12,7 +12,7 @@ import pandas as pd
 from utils.config import MIN_MONTHLY_ORDERS
 from utils.data_loader import load_all
 try:
-    from utils.openrouter_client import RND_MODEL, build_analyst_prompt, query_llm
+    from utils.openrouter_client import RND_MODEL, build_analyst_prompt, parse_batch_llm_response, query_llm
 except ModuleNotFoundError:  # pragma: no cover - local test fallback
     RND_MODEL = "deepseek/deepseek-v3.2"
 
@@ -25,6 +25,9 @@ except ModuleNotFoundError:  # pragma: no cover - local test fallback
     def query_llm(messages: list[dict[str, str]], model: str = RND_MODEL, max_tokens: int = 1000) -> str:
         del messages, model, max_tokens
         raise RuntimeError("LLM client unavailable in local environment.")
+
+    def parse_batch_llm_response(raw: str, items: list[dict], **_: object) -> list[dict | None]:
+        return [None] * len(items)
 from utils.schema_agents import SupplyQualityOutput
 
 
@@ -281,6 +284,76 @@ class SupplyQualityAgent:
         except Exception:
             return "WEAK", "Fallback: LLM response parse failed.", ["agent_failed"]
 
+    def _assess_supply_batch(
+        self,
+        items: list[dict[str, Any]],
+        month: str,
+        prev_memory: dict[tuple[str, str], dict] | None = None,
+    ) -> dict[tuple[str, str], tuple[str, str, list[str]]]:
+        """Send all non-sparse state×category pairs in one LLM call.
+
+        Returns {(state, category): (supply_confidence, reasoning, risk_flags)}.
+        Falls back to ("WEAK", "...", ["agent_failed"]) for any missing item.
+        """
+        batch_payload = []
+        for item in items:
+            payload_item = {
+                "state": item["state"],
+                "category": item["category"],
+                "month": month,
+                "seller_count": item["seller_count"],
+                "avg_review_score": round(item["avg_review_score"], 4),
+                "avg_delivery_days": round(item["avg_delivery_days"], 4),
+                "churn_risk": item["churn_risk"],
+                "churn_rate": round(item["churn_rate"], 4),
+                "top_seller_id": item["top_seller_id"],
+                "seller_concentration": round(item["seller_concentration"], 4),
+            }
+            last_month_context = self._format_last_month_context(
+                prev_memory=prev_memory,
+                state=item["state"],
+                category=item["category"],
+            )
+            if last_month_context is not None:
+                payload_item["last_month_context"] = last_month_context
+            batch_payload.append(payload_item)
+        question = (
+            "Assess supply confidence for each item. "
+            "Use last_month_context when present to maintain historical continuity. "
+            "Return ONLY a JSON array where each object has exactly: "
+            "{\"state\": <string>, \"category\": <string>, "
+            "\"supply_confidence\": \"STRONG|ADEQUATE|WEAK\", "
+            "\"reasoning\": <string>, \"risk_flags\": [<string>, ...]}. "
+            "One entry per input item in any order."
+        )
+        try:
+            messages = build_analyst_prompt(json.dumps(batch_payload, indent=2), question)
+            raw = query_llm(messages, model=self.model, max_tokens=4000)
+            parsed_items = parse_batch_llm_response(raw, items)
+            result: dict[tuple[str, str], tuple[str, str, list[str]]] = {}
+            for item, parsed in zip(items, parsed_items):
+                key = (item["state"], item["category"])
+                if parsed is not None and isinstance(parsed, dict):
+                    confidence = str(parsed.get("supply_confidence", "WEAK")).upper()
+                    if confidence not in {"STRONG", "ADEQUATE", "WEAK"}:
+                        confidence = "WEAK"
+                    reasoning = str(parsed.get("reasoning", "LLM assessment unavailable."))
+                    flags_raw = parsed.get("risk_flags", [])
+                    risk_flags = [str(f) for f in flags_raw] if isinstance(flags_raw, list) else []
+                else:
+                    confidence = "WEAK"
+                    reasoning = "Fallback: LLM response parse failed."
+                    risk_flags = ["agent_failed"]
+                result[key] = (confidence, reasoning, risk_flags)
+            return result
+        except Exception:
+            return {
+                (item["state"], item["category"]): (
+                    "WEAK", "Fallback: LLM response parse failed.", ["agent_failed"]
+                )
+                for item in items
+            }
+
     @staticmethod
     def _dedupe_flags(flags: list[str]) -> list[str]:
         seen: set[str] = set()
@@ -291,6 +364,50 @@ class SupplyQualityAgent:
                 ordered.append(flag)
         return ordered
 
+    @staticmethod
+    def _get_prev_pair_memory(
+        prev_memory: dict[tuple[str, str], dict] | None, state: str, category: str
+    ) -> dict[str, Any] | None:
+        if not prev_memory:
+            return None
+
+        direct = prev_memory.get((state, category))
+        if isinstance(direct, dict):
+            return direct
+
+        pipe_key = prev_memory.get(f"{state}|{category}")
+        if isinstance(pipe_key, dict):
+            return pipe_key
+
+        colon_key = prev_memory.get(f"{state}:{category}")
+        if isinstance(colon_key, dict):
+            return colon_key
+
+        nested = prev_memory.get(state)
+        if isinstance(nested, dict):
+            nested_pair = nested.get(category)
+            if isinstance(nested_pair, dict):
+                return nested_pair
+
+        return None
+
+    def _format_last_month_context(
+        self, prev_memory: dict[tuple[str, str], dict] | None, state: str, category: str
+    ) -> str | None:
+        previous = self._get_prev_pair_memory(prev_memory, state, category)
+        if not previous:
+            return None
+
+        supply_confidence = str(
+            previous.get("supply_confidence", previous.get("sq_supply_confidence", "UNKNOWN"))
+        )
+        churn_risk = str(previous.get("churn_risk", previous.get("sq_churn_risk", "UNKNOWN")))
+        reasoning = str(previous.get("reasoning", previous.get("sq_reasoning", "n/a")))
+        return (
+            f"Last month: supply_confidence={supply_confidence}, "
+            f"churn_risk={churn_risk}, reasoning={reasoning}"
+        )
+
     def run(
         self,
         training_df: pd.DataFrame | None,
@@ -299,8 +416,6 @@ class SupplyQualityAgent:
         month: str,
         prev_memory: dict[tuple[str, str], dict] | None = None,
     ) -> list[SupplyQualityOutput]:
-        del prev_memory  # Reserved for future temporal-coherence use.
-
         if training_df is None:
             training_df = self._build_training_df_from_data(self.data)
         else:
@@ -323,9 +438,10 @@ class SupplyQualityAgent:
             latest_month = self._to_month_period(month) - 1
         latest_month = self._to_month_period(latest_month)
 
-        outputs: list[SupplyQualityOutput] = []
         timestamp = datetime.now(timezone.utc).isoformat()
 
+        # --- Phase 1: compute all metrics without LLM ---
+        all_metrics: list[dict[str, Any]] = []
         for state in states:
             for category in categories:
                 scoped = training_df[
@@ -343,51 +459,75 @@ class SupplyQualityAgent:
                 top_seller_id, seller_concentration = self._compute_top_seller_and_concentration(
                     scoped
                 )
-
                 is_sparse = latest_order_count < MIN_MONTHLY_ORDERS
-                if is_sparse:
-                    supply_confidence = "WEAK"
-                    reasoning = "Sparse latest-month volume; LLM assessment skipped."
-                    risk_flags = ["sparse_data"]
-                else:
-                    supply_confidence, reasoning, risk_flags = self._assess_supply(
-                        state=state,
-                        category=category,
-                        month=month,
-                        seller_count=seller_count,
-                        avg_review_score=avg_review_score,
-                        avg_delivery_days=avg_delivery_days,
-                        churn_risk=churn_risk,
-                        churn_rate=churn_rate,
-                        top_seller_id=top_seller_id,
-                        seller_concentration=seller_concentration,
-                    )
 
-                if seller_count == 0:
-                    risk_flags.append("critical_seller_gap")
-                if churn_rate > 0.5:
-                    risk_flags.append("high_seller_churn")
-
-                outputs.append(
+                all_metrics.append(
                     {
-                        "agent": self.AGENT_NAME,
-                        "timestamp": timestamp,
                         "state": state,
                         "category": category,
-                        "month": month,
                         "seller_count": seller_count,
                         "avg_review_score": self._safe_float(avg_review_score, default=3.0),
                         "avg_delivery_days": self._safe_float(avg_delivery_days, default=0.0),
                         "churn_risk": churn_risk,
                         "churn_rate": self._safe_float(churn_rate, default=0.0),
                         "top_seller_id": top_seller_id,
-                        "seller_concentration": self._safe_float(
-                            seller_concentration, default=0.0
-                        ),
-                        "supply_confidence": supply_confidence,
-                        "reasoning": reasoning,
-                        "risk_flags": self._dedupe_flags(risk_flags),
+                        "seller_concentration": self._safe_float(seller_concentration, default=0.0),
+                        "is_sparse": is_sparse,
                     }
                 )
+
+        # --- Phase 2: one batch LLM call for all non-sparse pairs ---
+        non_sparse = [m for m in all_metrics if not m["is_sparse"]]
+        if non_sparse:
+            batch_results = self._assess_supply_batch(
+                non_sparse,
+                month,
+                prev_memory=prev_memory,
+            )
+        else:
+            batch_results = {}
+
+        # --- Phase 3: assemble outputs ---
+        outputs: list[SupplyQualityOutput] = []
+        for m in all_metrics:
+            state = m["state"]
+            category = m["category"]
+            risk_flags: list[str] = []
+
+            if m["is_sparse"]:
+                supply_confidence = "WEAK"
+                reasoning = "Sparse latest-month volume; LLM assessment skipped."
+                risk_flags.append("sparse_data")
+            else:
+                supply_confidence, reasoning, risk_flags = batch_results.get(
+                    (state, category),
+                    ("WEAK", "Fallback: LLM response parse failed.", ["agent_failed"]),
+                )
+                risk_flags = list(risk_flags)  # ensure mutable copy
+
+            if m["seller_count"] == 0:
+                risk_flags.append("critical_seller_gap")
+            if m["churn_rate"] > 0.5:
+                risk_flags.append("high_seller_churn")
+
+            outputs.append(
+                {
+                    "agent": self.AGENT_NAME,
+                    "timestamp": timestamp,
+                    "state": state,
+                    "category": category,
+                    "month": month,
+                    "seller_count": m["seller_count"],
+                    "avg_review_score": m["avg_review_score"],
+                    "avg_delivery_days": m["avg_delivery_days"],
+                    "churn_risk": m["churn_risk"],
+                    "churn_rate": m["churn_rate"],
+                    "top_seller_id": m["top_seller_id"],
+                    "seller_concentration": m["seller_concentration"],
+                    "supply_confidence": supply_confidence,
+                    "reasoning": reasoning,
+                    "risk_flags": self._dedupe_flags(risk_flags),
+                }
+            )
 
         return outputs

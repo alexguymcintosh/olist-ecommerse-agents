@@ -1,0 +1,62 @@
+{
+  "iteration": 3,
+  "training_window": [
+    "2016-12",
+    "2017-11"
+  ],
+  "prediction_month": "2017-12",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 0,
+    "incorrect": 1,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2017-12",
+      "composite_score": 33.5475,
+      "decision": "TARGETED CUSTOMER RETENTION",
+      "confidence": "HIGH",
+      "urgency": "HIGH",
+      "reasoning": "High predicted growth (49.7%) and strong premium customer base (R$152.20 avg spend, 215 high-value customers) indicate strong demand. However, critically low repeat rate (2.05%) and moderate order growth (65.32%) require immediate retention interventions to secure growth.",
+      "challenge": "Catastrophic customer retention (2.05% repeat rate) threatens to undermine high growth potential and premium positioning.",
+      "most_predictive_agent": "customer_readiness",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "MEDIUM",
+      "logistics_confidence": "ADEQUATE"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 40.6,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 20.81,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 23.76,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 12.29,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 44.19,
+      "llm_calls": 1
+    }
+  }
+}

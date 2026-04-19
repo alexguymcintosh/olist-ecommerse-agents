@@ -1,0 +1,62 @@
+{
+  "iteration": 11,
+  "training_window": [
+    "2017-08",
+    "2018-07"
+  ],
+  "prediction_month": "2018-08",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 0,
+    "incorrect": 1,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-08",
+      "composite_score": -0.018225,
+      "decision": "no_action",
+      "confidence": "LOW",
+      "urgency": "LOW",
+      "reasoning": "Composite score is non-positive; no growth opportunity.",
+      "challenge": "Could miss early inflection if data lags.",
+      "most_predictive_agent": "geographic",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "LOW",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 50.63,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 8.48,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 10.87,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 5.49,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 20.83,
+      "llm_calls": 1
+    }
+  }
+}

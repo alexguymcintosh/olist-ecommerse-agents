@@ -247,15 +247,12 @@ def test_rank_opportunities_uses_confidence_score_numeric() -> None:
 
 def test_run_returns_geographic_output_contract(monkeypatch) -> None:
     monkeypatch.setattr(pd, "read_csv", lambda *_args, **_kwargs: _categories_df())
+    monkeypatch.setattr(
+        "agents.geographic.geographic_agent.query_llm",
+        lambda *_a, **_k: "[]",
+    )
     data = _build_core_data()
     agent = GeographicAgent(data=data)
-
-    # Mock LLM method to avoid real API calls.
-    monkeypatch.setattr(
-        agent,
-        "_predict_next_month_growth",
-        lambda state, category, momentum: (0.1 if pd.notna(momentum) else 0.0, "mock"),
-    )
 
     out = agent.run(
         iteration=2, training_window=("2016-10", "2016-11"), prediction_month="2016-12"

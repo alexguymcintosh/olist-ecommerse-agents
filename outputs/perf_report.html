@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<title>Perf Report</title>
+<style>
+body { font-family: Arial, sans-serif; font-size: 14px; background: #fafafa;
+       color: #222; margin: 0; padding: 20px 32px; }
+h1 { font-size: 1.4em; margin-bottom: 4px; }
+h2 { font-size: 1.15em; border-bottom: 2px solid #aaa; padding-bottom: 4px;
+     margin-top: 32px; }
+table { border-collapse: collapse; margin: 10px 0; }
+th { background: #37474f; color: #fff; padding: 5px 10px;
+     font-size: 0.85em; text-align: center; border: 1px solid #555; }
+th.left { text-align: left; }
+td { padding: 4px 10px; border: 1px solid #ddd; font-size: 0.85em;
+     text-align: center; }
+td.left { text-align: left; }
+.meta { background: #eceff1; border: 1px solid #b0bec5; border-radius: 4px;
+        padding: 10px 16px; margin-bottom: 24px; font-size: 0.88em; }
+.best-worst { margin: 10px 0; font-size: 0.88em; color: #444; }
+.bar-row { display: flex; align-items: center; margin: 4px 0; font-size: 0.85em; }
+.bar-label { width: 160px; flex-shrink: 0; color: #333; }
+.bar-track { background: #e0e0e0; height: 14px; flex: 1; border-radius: 2px;
+             overflow: hidden; margin: 0 8px; }
+.bar-fill { height: 100%; background: #546e7a; border-radius: 2px; }
+.bar-val { width: 60px; text-align: right; color: #555; font-size: 0.82em; }
+</style>
+</head>
+<body>
+<h1>Olist Performance Visualisation Report</h1>
+<div class="meta">
+<strong>Source:</strong> /home/mantis/01_projects/olist-ecommerse-agents/outputs/iterations<br>
+<strong>Files read:</strong> 11<br>
+<strong>Date range:</strong> 2017-09 → 2018-08<br>
+<strong>Generated:</strong> 2026-04-19 14:30:57 UTC
+</div>
+<h2>Section 1 — Iteration Summary</h2>
+<table>
+<thead><tr><th class='left'>Month</th><th>Status</th><th>Wall Time (s)</th><th>LLM Calls</th><th>Validated</th><th>Correct</th><th>Incorrect</th><th>Accuracy</th></tr></thead>
+<tbody>
+<tr><td class='left'>2017-09</td><td><span style="color:green;font-weight:bold">OK</span></td><td>99.38</td><td>5</td><td>—</td><td>—</td><td>—</td><td><span style="color:grey;font-weight:bold">—</span></td></tr>
+<tr><td class='left'>2017-10</td><td><span style="color:green;font-weight:bold">OK</span></td><td>79.44</td><td>5</td><td>1</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td></tr>
+<tr><td class='left'>2017-12</td><td><span style="color:green;font-weight:bold">OK</span></td><td>141.65</td><td>5</td><td>1</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td></tr>
+<tr><td class='left'>2018-01</td><td><span style="color:green;font-weight:bold">OK</span></td><td>270.77</td><td>5</td><td>1</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td></tr>
+<tr><td class='left'>2018-02</td><td><span style="color:green;font-weight:bold">OK</span></td><td>123.25</td><td>5</td><td>1</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td></tr>
+<tr><td class='left'>2018-03</td><td><span style="color:green;font-weight:bold">OK</span></td><td>90.06</td><td>5</td><td>1</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td></tr>
+<tr><td class='left'>2018-04</td><td><span style="color:green;font-weight:bold">OK</span></td><td>225.92</td><td>5</td><td>1</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td></tr>
+<tr><td class='left'>2018-05</td><td><span style="color:green;font-weight:bold">OK</span></td><td>75.57</td><td>5</td><td>1</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td></tr>
+<tr><td class='left'>2018-06</td><td><span style="color:green;font-weight:bold">OK</span></td><td>60.47</td><td>5</td><td>1</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td></tr>
+<tr><td class='left'>2018-07</td><td><span style="color:green;font-weight:bold">OK</span></td><td>111.06</td><td>5</td><td>1</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td></tr>
+<tr><td class='left'>2018-08</td><td><span style="color:green;font-weight:bold">OK</span></td><td>96.3</td><td>5</td><td>1</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td></tr>
+</tbody>
+</table>
+<h2>Section 2 — Per-Agent Timing</h2>
+<table>
+<thead><tr><th class='left'>Agent</th><th>Avg (s)</th><th>Min (s)</th><th>Max (s)</th><th>Total LLM Calls</th></tr></thead>
+<tbody>
+<tr><td class='left'>geographic</td><td>77.58</td><td>32.92</td><td>239.62</td><td>11</td></tr>
+<tr><td class='left'>supply_quality</td><td>14.98</td><td>3.65</td><td>34.33</td><td>11</td></tr>
+<tr><td class='left'>customer_readiness</td><td>9.58</td><td>3.27</td><td>23.76</td><td>11</td></tr>
+<tr><td class='left'>logistics</td><td>10.34</td><td>4.1</td><td>21.85</td><td>11</td></tr>
+<tr><td class='left'>connector</td><td>12.42</td><td>4.56</td><td>44.19</td><td>11</td></tr>
+</tbody>
+</table>
+<h3>Average wall time per agent</h3>
+<div class="bar-row"><span class="bar-label">geographic</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-val">77.58s</span></div>
+<div class="bar-row"><span class="bar-label">supply_quality</span><div class="bar-track"><div class="bar-fill" style="width:19%"></div></div><span class="bar-val">14.98s</span></div>
+<div class="bar-row"><span class="bar-label">customer_readiness</span><div class="bar-track"><div class="bar-fill" style="width:12%"></div></div><span class="bar-val">9.58s</span></div>
+<div class="bar-row"><span class="bar-label">logistics</span><div class="bar-track"><div class="bar-fill" style="width:13%"></div></div><span class="bar-val">10.34s</span></div>
+<div class="bar-row"><span class="bar-label">connector</span><div class="bar-track"><div class="bar-fill" style="width:16%"></div></div><span class="bar-val">12.42s</span></div>
+<h2>Section 3 — Correct / Incorrect Trend</h2>
+<table>
+<thead><tr><th class='left'>Month</th><th>Correct</th><th>Incorrect</th><th>Accuracy</th><th>Trend</th></tr></thead>
+<tbody>
+<tr><td class='left'>2017-09</td><td>—</td><td>—</td><td><span style="color:grey;font-weight:bold">—</span></td><td style='font-size:1.2em;text-align:center'><span style="color:grey">→</span></td></tr>
+<tr><td class='left'>2017-10</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:grey">→</span></td></tr>
+<tr><td class='left'>2017-12</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:red">↓</span></td></tr>
+<tr><td class='left'>2018-01</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:grey">→</span></td></tr>
+<tr><td class='left'>2018-02</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:green">↑</span></td></tr>
+<tr><td class='left'>2018-03</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:grey">→</span></td></tr>
+<tr><td class='left'>2018-04</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:red">↓</span></td></tr>
+<tr><td class='left'>2018-05</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:green">↑</span></td></tr>
+<tr><td class='left'>2018-06</td><td>1</td><td>0</td><td><span style="color:green;font-weight:bold">100.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:grey">→</span></td></tr>
+<tr><td class='left'>2018-07</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:red">↓</span></td></tr>
+<tr><td class='left'>2018-08</td><td>0</td><td>1</td><td><span style="color:red;font-weight:bold">0.0%</span></td><td style='font-size:1.2em;text-align:center'><span style="color:grey">→</span></td></tr>
+</tbody>
+</table>
+<p class="best-worst"><strong>Best iteration:</strong> 2017-10 (100.0%)&nbsp;&nbsp;<strong>Worst validated iteration:</strong> 2017-12 (0.0%)</p>
+<h2>Section 4 — Top Connector Decisions (All Iterations)</h2>
+<table>
+<thead><tr><th>Rank</th><th class='left'>Month</th><th>State</th><th>Category</th><th class='left'>Decision</th><th>Confidence</th><th>Score</th><th>Most Predictive</th></tr></thead>
+<tbody>
+<tr><td>1</td><td class='left'>2017-12</td><td>SP</td><td>health_beauty</td><td class='left'>TARGETED CUSTOMER RETENTION</td><td><span style="color:green;font-weight:bold">HIGH</span></td><td>33.5475</td><td>customer_readiness</td></tr>
+<tr><td>2</td><td class='left'>2018-02</td><td>SP</td><td>health_beauty</td><td class='left'>HOLD_AND_MONITOR</td><td><span style="color:green;font-weight:bold">HIGH</span></td><td>32.2920</td><td>customer_readiness</td></tr>
+<tr><td>3</td><td class='left'>2018-04</td><td>SP</td><td>health_beauty</td><td class='left'>FULL INVESTMENT</td><td><span style="color:green;font-weight:bold">HIGH</span></td><td>13.4075</td><td>geographic</td></tr>
+<tr><td>4</td><td class='left'>2018-06</td><td>SP</td><td>health_beauty</td><td class='left'>SCALE</td><td><span style="color:orange;font-weight:bold">MEDIUM</span></td><td>11.8335</td><td>geographic</td></tr>
+<tr><td>5</td><td class='left'>2017-10</td><td>SP</td><td>health_beauty</td><td class='left'>DEFER</td><td><span style="color:green;font-weight:bold">HIGH</span></td><td>8.4600</td><td>supply_quality</td></tr>
+<tr><td>6</td><td class='left'>2017-09</td><td>SP</td><td>health_beauty</td><td class='left'>EXECUTE WITH SUPPLY MITIGATION</td><td><span style="color:orange;font-weight:bold">MEDIUM</span></td><td>3.1900</td><td>supply_quality</td></tr>
+<tr><td>7</td><td class='left'>2018-01</td><td>SP</td><td>health_beauty</td><td class='left'>FIX_RETENTION</td><td><span style="color:green;font-weight:bold">HIGH</span></td><td>0.2160</td><td>customer_readiness</td></tr>
+<tr><td>8</td><td class='left'>2018-05</td><td>SP</td><td>health_beauty</td><td class='left'>SCALE</td><td><span style="color:green;font-weight:bold">HIGH</span></td><td>0.1146</td><td>geographic</td></tr>
+<tr><td>9</td><td class='left'>2018-07</td><td>SP</td><td>health_beauty</td><td class='left'>SCALE_INITIATIVE</td><td><span style="color:green;font-weight:bold">HIGH</span></td><td>0.0404</td><td>geographic</td></tr>
+<tr><td>10</td><td class='left'>2018-03</td><td>SP</td><td>health_beauty</td><td class='left'>no_action</td><td><span style="color:red;font-weight:bold">LOW</span></td><td>-0.0077</td><td>geographic</td></tr>
+</tbody>
+</table>
+
+</body>
+</html>

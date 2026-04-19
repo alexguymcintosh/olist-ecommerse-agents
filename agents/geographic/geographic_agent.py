@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from utils.data_loader import load_all
-from utils.openrouter_client import RND_MODEL, build_analyst_prompt, query_llm
+from utils.openrouter_client import RND_MODEL, build_analyst_prompt, parse_batch_llm_response, query_llm
 from utils.config import FOCUS_CATEGORIES, FOCUS_STATES
 from utils.schema_geographic import (
     GeographicMetrics,
@@ -173,7 +173,7 @@ class GeographicAgent:
     def _predict_next_month_growth(
         self, state: str, category: str, momentum: float | None
     ) -> tuple[float, str]:
-        """LLM-assisted prediction with safe fallback to momentum."""
+        """LLM-assisted prediction with safe fallback to momentum (single-pair, kept for compat)."""
         base = 0.0 if momentum is None or pd.isna(momentum) else float(momentum)
         payload = json.dumps(
             {"state": state, "category": category, "momentum": base}, indent=2
@@ -190,6 +190,45 @@ class GeographicAgent:
             return pred, reasoning
         except Exception:
             return base, "Momentum fallback forecast"
+
+    def _predict_batch_growth(
+        self, items: list[dict[str, Any]]
+    ) -> dict[tuple[str, str], tuple[float, str]]:
+        """Send all state×category momentum items in one LLM call.
+
+        Each item: {state, category, momentum}.
+        Returns {(state, category): (predicted_growth_pct, reasoning)}.
+        Falls back to momentum for any item not returned by LLM.
+        """
+        def _fallback(item: dict[str, Any]) -> tuple[float, str]:
+            base = float(item["momentum"]) if item["momentum"] is not None and not pd.isna(item["momentum"]) else 0.0
+            return base, "Momentum fallback forecast"
+
+        payload = json.dumps(items, indent=2)
+        question = (
+            "For each item predict next-month revenue growth. "
+            "Return ONLY a JSON array where each object has exactly: "
+            "{\"state\": <string>, \"category\": <string>, "
+            "\"predicted_growth_pct\": <float>, \"reasoning\": <string>}. "
+            "Array must have one entry per input item in any order."
+        )
+        try:
+            messages = build_analyst_prompt(payload, question)
+            raw = query_llm(messages, model=self.model, max_tokens=3000)
+            parsed_items = parse_batch_llm_response(raw, items)
+            result: dict[tuple[str, str], tuple[float, str]] = {}
+            for item, parsed in zip(items, parsed_items):
+                key = (item["state"], item["category"])
+                base = float(item["momentum"]) if item["momentum"] is not None and not pd.isna(item["momentum"]) else 0.0
+                if parsed is not None and isinstance(parsed, dict):
+                    pred = float(parsed.get("predicted_growth_pct", base))
+                    reasoning = str(parsed.get("reasoning", "LLM-assisted forecast"))
+                else:
+                    pred, reasoning = _fallback(item)
+                result[key] = (pred, reasoning)
+            return result
+        except Exception:
+            return {(item["state"], item["category"]): _fallback(item) for item in items}
 
     def _compute_supply_gaps(
         self,
@@ -304,31 +343,38 @@ class GeographicAgent:
         )
 
         predictions: list[Prediction] = []
+        batch_items = []
         for state in states:
             for category in categories:
                 momentum = momentum_scores.get(state, {}).get(category, np.nan)
-                predicted_growth, reasoning = self._predict_next_month_growth(
-                    state, category, momentum
-                )
-                latest_orders = order_counts.get(state, {}).get(category, 0)
-                confidence, confidence_score = self._score_confidence(
-                    growth_matrix.get(state, {}).get(category, np.nan),
-                    latest_orders,
-                )
-                if sparse_flags.get(state, {}).get(category, False):
-                    confidence = "LOW"
-                    confidence_score = 0.0
+                momentum_val: float | None = float(momentum) if pd.notna(momentum) else None
+                batch_items.append({"state": state, "category": category, "momentum": momentum_val})
 
-                predictions.append(
-                    {
-                        "state": state,
-                        "category": category,
-                        "predicted_growth_pct": float(predicted_growth),
-                        "confidence": confidence,
-                        "confidence_score": float(confidence_score),
-                        "reasoning": reasoning,
-                    }
-                )
+        batch_results = self._predict_batch_growth(batch_items)
+
+        for item in batch_items:
+            state = item["state"]
+            category = item["category"]
+            predicted_growth, reasoning = batch_results[(state, category)]
+            latest_orders = order_counts.get(state, {}).get(category, 0)
+            confidence, confidence_score = self._score_confidence(
+                growth_matrix.get(state, {}).get(category, np.nan),
+                latest_orders,
+            )
+            if sparse_flags.get(state, {}).get(category, False):
+                confidence = "LOW"
+                confidence_score = 0.0
+
+            predictions.append(
+                {
+                    "state": state,
+                    "category": category,
+                    "predicted_growth_pct": float(predicted_growth),
+                    "confidence": confidence,
+                    "confidence_score": float(confidence_score),
+                    "reasoning": reasoning,
+                }
+            )
 
         latest_month = training_df["month"].max()
         latest_df = joined[joined["month"] == latest_month].copy()

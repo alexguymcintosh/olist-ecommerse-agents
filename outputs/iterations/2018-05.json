@@ -1,0 +1,62 @@
+{
+  "iteration": 8,
+  "training_window": [
+    "2017-05",
+    "2018-04"
+  ],
+  "prediction_month": "2018-05",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 1,
+    "incorrect": 0,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-05",
+      "composite_score": 0.114625,
+      "decision": "SCALE",
+      "confidence": "HIGH",
+      "urgency": "MEDIUM",
+      "reasoning": "High composite score (0.1146) and HIGH geo_confidence (1.0). Strong positive momentum: order volume +10%, high-value customers +5.2%, strong logistics (93.03% on-time rate). Supply and customer readiness are both positive (ADEQUATE/HIGH). Predicted geographic growth of 13.1% supports expansion.",
+      "challenge": "Supplier churn increased to 26.29%, indicating potential supply chain volatility. Moderate cross-state dependency (26.29%). Need to monitor supplier stability while scaling.",
+      "most_predictive_agent": "geographic",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "HIGH",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 39.66,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 17.87,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 6.01,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 4.1,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 7.93,
+      "llm_calls": 1
+    }
+  }
+}

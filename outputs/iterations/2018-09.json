@@ -1,0 +1,62 @@
+{
+  "iteration": 12,
+  "training_window": [
+    "2017-09",
+    "2018-08"
+  ],
+  "prediction_month": "2018-09",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 0,
+    "incorrect": 1,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-09",
+      "composite_score": 0.05967499999999999,
+      "decision": "SCALE",
+      "confidence": "MEDIUM",
+      "urgency": "MEDIUM",
+      "reasoning": "Composite score positive (0.0597). Geographic prediction strong (7.7% growth, HIGH confidence). Logistics are STRONG with improving operational metrics. Order volume rebounded (+18.07%).",
+      "challenge": "Critical risk from critically low customer repeat rate (0.75%) and rising seller churn (26.91%), threatening supply stability and long-term customer base.",
+      "most_predictive_agent": "geographic",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "MEDIUM",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 278.56,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 7.7,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 11.7,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 17.99,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 5.86,
+      "llm_calls": 1
+    }
+  }
+}

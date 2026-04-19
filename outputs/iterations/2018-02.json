@@ -1,0 +1,62 @@
+{
+  "iteration": 5,
+  "training_window": [
+    "2017-02",
+    "2018-01"
+  ],
+  "prediction_month": "2018-02",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 1,
+    "incorrect": 0,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-02",
+      "composite_score": 32.292,
+      "decision": "HOLD_AND_MONITOR",
+      "confidence": "HIGH",
+      "urgency": "LOW",
+      "reasoning": "Geo shows 47.84% predicted growth with HIGH confidence; supply is ADEQUATE with stable seller base; logistics is STRONG with 94.09% on-time delivery. Critical customer retention risk (1.29% repeat rate) outweighs geographic opportunity, making expansion premature.",
+      "challenge": "Severe customer retention crisis (1.29% repeat rate) undermines market stability despite strong geographic growth signals.",
+      "most_predictive_agent": "customer_readiness",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "LOW",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 82.28,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 21.2,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 5.63,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 4.24,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 9.9,
+      "llm_calls": 1
+    }
+  }
+}

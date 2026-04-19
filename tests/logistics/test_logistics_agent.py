@@ -156,7 +156,8 @@ def test_delivered_filter_applied_before_time_metrics(monkeypatch) -> None:
 
     monkeypatch.setattr(agent, "_compute_metrics", _checked_metrics)
     monkeypatch.setattr(
-        agent, "_llm_assessment", lambda *_args, **_kwargs: ("WEAK", "ok", [])
+        "agents.logistics.logistics_agent.query_llm",
+        lambda *_a, **_k: "[]",
     )
     agent.run(month="2018-08")
 

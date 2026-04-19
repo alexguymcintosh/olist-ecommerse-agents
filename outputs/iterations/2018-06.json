@@ -1,0 +1,62 @@
+{
+  "iteration": 9,
+  "training_window": [
+    "2017-06",
+    "2018-05"
+  ],
+  "prediction_month": "2018-06",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 1,
+    "incorrect": 0,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-06",
+      "composite_score": 11.833499999999999,
+      "decision": "SCALE",
+      "confidence": "MEDIUM",
+      "urgency": "HIGH",
+      "reasoning": "Strong composite score (11.83) with positive momentum across all agents: 16.1% growth prediction, 17.85% order volume increase, HIGH customer readiness, STRONG logistics, ADEQUATE supply with improved seller metrics, and decreased seller concentration risk. First iteration with no prior negative signals.",
+      "challenge": "First-time operation in this region-category combo lacks historical validation; slightly increased churn rate (27.49%) and cross-state dependency (26.36%) create moderate operational exposure.",
+      "most_predictive_agent": "geographic",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "MEDIUM",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "HIGH",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 33.18,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 9.77,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 3.27,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 5.19,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 9.06,
+      "llm_calls": 1
+    }
+  }
+}

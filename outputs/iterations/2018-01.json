@@ -1,0 +1,62 @@
+{
+  "iteration": 4,
+  "training_window": [
+    "2017-01",
+    "2017-12"
+  ],
+  "prediction_month": "2018-01",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 0,
+    "incorrect": 1,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2018-01",
+      "composite_score": 0.21600000000000003,
+      "decision": "FIX_RETENTION",
+      "confidence": "HIGH",
+      "urgency": "HIGH",
+      "reasoning": "Customer readiness is LOW with critical repeat rate (1.86%) and severe order decline (-20.49%), outweighing strong logistics and adequate supply. Geographic growth potential (32% predicted) makes retention problems urgent to address.",
+      "challenge": "Severe customer retention issues; repeat rate of 1.86% indicates fundamental engagement failure.",
+      "most_predictive_agent": "customer_readiness",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "LOW",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 239.62,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 7.48,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 4.13,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 13.7,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 5.84,
+      "llm_calls": 1
+    }
+  }
+}

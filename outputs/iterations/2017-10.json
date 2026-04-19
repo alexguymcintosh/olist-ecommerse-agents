@@ -1,0 +1,62 @@
+{
+  "iteration": 2,
+  "training_window": [
+    "2016-10",
+    "2017-09"
+  ],
+  "prediction_month": "2017-10",
+  "status": "ok",
+  "validation": {
+    "validated": 1,
+    "correct": 1,
+    "incorrect": 0,
+    "unknown": 0
+  },
+  "top_connector_decisions": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "month": "2017-10",
+      "composite_score": 12.690000000000001,
+      "decision": "MONITOR_AND_OPTIMIZE",
+      "confidence": "MEDIUM",
+      "urgency": "MEDIUM",
+      "reasoning": "Geographic growth potential (18.8%) is strong and logistics are excellent, but customer readiness is LOW with declining order volume (-14.4%) and extremely low retention (3.95% repeat rate). Supply side is adequate but shows medium churn risk. The mismatch between high geographic potential and poor customer metrics requires operational optimization before aggressive expansion.",
+      "challenge": "Improving customer retention and reversing order decline despite high geographic growth signals and strong logistics.",
+      "most_predictive_agent": "customer_readiness",
+      "risk_flags": []
+    }
+  ],
+  "agent_signal_summary": [
+    {
+      "state": "SP",
+      "category": "health_beauty",
+      "geo_confidence": "HIGH",
+      "supply_confidence": "ADEQUATE",
+      "customer_confidence": "LOW",
+      "logistics_confidence": "STRONG"
+    }
+  ],
+  "agent_timings": {
+    "geographic": {
+      "wall_seconds": 41.0,
+      "llm_calls": 1
+    },
+    "supply_quality": {
+      "wall_seconds": 4.32,
+      "llm_calls": 1
+    },
+    "customer_readiness": {
+      "wall_seconds": 7.92,
+      "llm_calls": 1
+    },
+    "logistics": {
+      "wall_seconds": 22.96,
+      "llm_calls": 1
+    },
+    "connector": {
+      "wall_seconds": 7.4,
+      "llm_calls": 1
+    }
+  }
+}

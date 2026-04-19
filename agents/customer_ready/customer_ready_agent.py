@@ -11,7 +11,7 @@ import pandas as pd
 
 from utils.config import FOCUS_CATEGORIES, FOCUS_STATES
 from utils.data_loader import load_all
-from utils.openrouter_client import RND_MODEL, build_analyst_prompt, query_llm
+from utils.openrouter_client import RND_MODEL, build_analyst_prompt, parse_batch_llm_response, query_llm
 from utils.schema_agents import CustomerReadinessOutput
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -35,15 +35,13 @@ class CustomerReadinessAgent:
         self.memory = memory
         self.llm_client = llm_client
 
-    def _load_customer_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
-        orders = self.data["orders"].copy()
-        customers = self.data["customers"].copy()
-        order_items = self.data["order_items"].copy()
-        products = self.data["products"].copy()
+    def _load_customer_data(
+        self, training_df: pd.DataFrame | None = None
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         payments = self.data["payments"].copy()
-        categories = pd.read_csv(
-            DATA_DIR / "product_category_name_translation.csv", encoding="utf-8-sig"
-        )
+        payments["payment_installments"] = pd.to_numeric(
+            payments["payment_installments"], errors="coerce"
+        ).fillna(0)
 
         payments_agg = (
             payments.groupby("order_id", dropna=True)["payment_value"]
@@ -51,14 +49,43 @@ class CustomerReadinessAgent:
             .reset_index()
             .rename(columns={"payment_value": "total_payment_value"})
         )
-
-        main_df = (
-            orders.merge(customers, on="customer_id", how="inner")
-            .merge(order_items, on="order_id", how="inner")
-            .merge(products, on="product_id", how="left")
-            .merge(categories, on="product_category_name", how="left")
-            .merge(payments_agg, on="order_id", how="left")
-        )
+        if training_df is not None:
+            main_df = training_df.copy()
+            training_order_ids = (
+                main_df["order_id"].dropna().astype(str).unique().tolist()
+                if "order_id" in main_df.columns
+                else []
+            )
+            if training_order_ids:
+                payments_agg = payments_agg[
+                    payments_agg["order_id"].astype(str).isin(training_order_ids)
+                ].copy()
+                payments = payments[
+                    payments["order_id"].astype(str).isin(training_order_ids)
+                ].copy()
+            if "total_payment_value" in main_df.columns:
+                main_df = main_df.drop(columns=["total_payment_value"])
+            main_df = main_df.merge(payments_agg, on="order_id", how="left")
+        else:
+            orders = self.data["orders"].copy()
+            customers = self.data["customers"].copy()
+            order_items = self.data["order_items"].copy()
+            products = self.data["products"].copy()
+            categories = (
+                self.data["categories"].copy()
+                if "categories" in self.data
+                else pd.read_csv(
+                    DATA_DIR / "product_category_name_translation.csv",
+                    encoding="utf-8-sig",
+                )
+            )
+            main_df = (
+                orders.merge(customers, on="customer_id", how="inner")
+                .merge(order_items, on="order_id", how="inner")
+                .merge(products, on="product_id", how="left")
+                .merge(categories, on="product_category_name", how="left")
+                .merge(payments_agg, on="order_id", how="left")
+            )
         main_df["order_purchase_timestamp"] = pd.to_datetime(
             main_df["order_purchase_timestamp"], errors="coerce"
         )
@@ -69,10 +96,6 @@ class CustomerReadinessAgent:
         main_df["product_category_name_english"] = main_df[
             "product_category_name_english"
         ].astype("string")
-
-        payments["payment_installments"] = pd.to_numeric(
-            payments["payment_installments"], errors="coerce"
-        ).fillna(0)
         return main_df, payments
 
     @staticmethod
@@ -215,6 +238,76 @@ class CustomerReadinessAgent:
             "risk_flags": [str(x) for x in risk_flags],
         }
 
+    def _assess_batch(
+        self,
+        items: list[dict[str, Any]],
+        month: str,
+        prev_memory: dict[str, Any] | None = None,
+    ) -> dict[tuple[str, str], dict[str, Any]]:
+        """Send all state×category metrics in one LLM call.
+
+        Returns {(state, category): {"readiness", "reasoning", "risk_flags"}}.
+        Falls back to _fallback_assessment() for any item not returned by LLM.
+        """
+        batch_payload = []
+        for item in items:
+            payload_item = {
+                "state": item["state"],
+                "category": item["category"],
+                "avg_spend": round(item["metrics"]["avg_spend"], 2),
+                "order_volume_trend": round(item["metrics"]["order_volume_trend"], 4),
+                "top_payment_type": item["metrics"]["top_payment_type"],
+                "high_value_customer_count": item["metrics"]["high_value_customer_count"],
+                "repeat_rate": round(item["metrics"]["repeat_rate"], 4),
+                "installment_pct": round(item["metrics"]["installment_pct"], 4),
+            }
+            last_month_context = self._format_last_month_context(
+                prev_memory=prev_memory,
+                state=item["state"],
+                category=item["category"],
+            )
+            if last_month_context is not None:
+                payload_item["last_month_context"] = last_month_context
+            batch_payload.append(payload_item)
+        question = (
+            f"Training month: {month}. Assess customer readiness for each item. "
+            "Use last_month_context when present to keep temporal continuity. "
+            "Return ONLY a JSON array where each object has exactly: "
+            "{\"state\": <string>, \"category\": <string>, "
+            "\"readiness\": \"HIGH|MEDIUM|LOW\", "
+            "\"reasoning\": <string>, \"risk_flags\": [<string>, ...]}. "
+            "One entry per input item in any order."
+        )
+        try:
+            messages = build_analyst_prompt(
+                json.dumps(batch_payload, indent=2), question
+            )
+            raw = self.llm_client(messages, model=self.model, max_tokens=4000)
+            parsed_items = parse_batch_llm_response(raw, items)
+            result: dict[tuple[str, str], dict[str, Any]] = {}
+            for item, parsed in zip(items, parsed_items):
+                key = (item["state"], item["category"])
+                if parsed is not None and isinstance(parsed, dict):
+                    readiness = str(parsed.get("readiness", "MEDIUM")).upper()
+                    if readiness not in READINESS_VALUES:
+                        readiness = "MEDIUM"
+                    risk_flags = parsed.get("risk_flags", [])
+                    if not isinstance(risk_flags, list):
+                        risk_flags = ["agent_failed"]
+                    result[key] = {
+                        "readiness": readiness,
+                        "reasoning": str(parsed.get("reasoning", "LLM readiness assessment")),
+                        "risk_flags": [str(x) for x in risk_flags],
+                    }
+                else:
+                    result[key] = self._fallback_assessment()
+            return result
+        except Exception:
+            return {
+                (item["state"], item["category"]): self._fallback_assessment()
+                for item in items
+            }
+
     @staticmethod
     def _fallback_assessment() -> dict[str, Any]:
         return {
@@ -222,6 +315,52 @@ class CustomerReadinessAgent:
             "reasoning": "Fallback readiness due to LLM parsing failure.",
             "risk_flags": ["agent_failed"],
         }
+
+    @staticmethod
+    def _get_prev_pair_memory(
+        prev_memory: dict[str, Any] | None, state: str, category: str
+    ) -> dict[str, Any] | None:
+        if not isinstance(prev_memory, dict):
+            return None
+
+        direct = prev_memory.get((state, category))
+        if isinstance(direct, dict):
+            return direct
+
+        pipe_key = prev_memory.get(f"{state}|{category}")
+        if isinstance(pipe_key, dict):
+            return pipe_key
+
+        colon_key = prev_memory.get(f"{state}:{category}")
+        if isinstance(colon_key, dict):
+            return colon_key
+
+        nested = prev_memory.get(state)
+        if isinstance(nested, dict):
+            nested_pair = nested.get(category)
+            if isinstance(nested_pair, dict):
+                return nested_pair
+
+        return None
+
+    def _format_last_month_context(
+        self, prev_memory: dict[str, Any] | None, state: str, category: str
+    ) -> str | None:
+        previous = self._get_prev_pair_memory(prev_memory, state, category)
+        if not previous:
+            return None
+
+        readiness = str(previous.get("readiness", previous.get("cr_readiness", "UNKNOWN")))
+        risk_flags = previous.get("risk_flags", [])
+        if isinstance(risk_flags, list):
+            risk_text = "|".join(str(flag) for flag in risk_flags) or "none"
+        else:
+            risk_text = str(risk_flags)
+        reasoning = str(previous.get("reasoning", previous.get("cr_reasoning", "n/a")))
+        return (
+            f"Last month: readiness={readiness}, "
+            f"risk_flags={risk_text}, reasoning={reasoning}"
+        )
 
     def _write_memory(self, output: CustomerReadinessOutput) -> None:
         if self.memory is None or not hasattr(self.memory, "write_row"):
@@ -246,8 +385,7 @@ class CustomerReadinessAgent:
         month: str | None = None,
         prev_memory: dict[str, Any] | None = None,
     ) -> list[CustomerReadinessOutput]:
-        del prev_memory  # reserved for future temporal learning.
-        main_df, payments = self._load_customer_data()
+        main_df, payments = self._load_customer_data(training_df=training_df)
 
         focus_states = states if states is not None else FOCUS_STATES
         focus_categories = categories if categories is not None else FOCUS_CATEGORIES
@@ -259,7 +397,8 @@ class CustomerReadinessAgent:
         months = self._last_three_months(max_month)
         output_month = month if month is not None else str(max_month)
 
-        outputs: list[CustomerReadinessOutput] = []
+        # --- Phase 1: compute all metrics (pandas only) ---
+        batch_items: list[dict[str, Any]] = []
         for state in focus_states:
             for category in focus_categories:
                 metrics = self._compute_metrics_for_pair(
@@ -269,32 +408,39 @@ class CustomerReadinessAgent:
                     category=category,
                     months=months,
                 )
-                try:
-                    assessment = self._assess_with_llm(
-                        state=state,
-                        category=category,
-                        month=output_month,
-                        metrics=metrics,
-                    )
-                except Exception:
-                    assessment = self._fallback_assessment()
+                batch_items.append({"state": state, "category": category, "metrics": metrics})
 
-                output: CustomerReadinessOutput = {
-                    "agent": self.AGENT_NAME,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "state": state,
-                    "category": category,
-                    "month": output_month,
-                    "avg_spend": self._safe_float(metrics["avg_spend"]),
-                    "order_volume_trend": self._safe_float(metrics["order_volume_trend"]),
-                    "top_payment_type": str(metrics["top_payment_type"] or "credit_card"),
-                    "high_value_customer_count": int(metrics["high_value_customer_count"]),
-                    "repeat_rate": self._safe_float(metrics["repeat_rate"]),
-                    "installment_pct": self._safe_float(metrics["installment_pct"]),
-                    "readiness": str(assessment["readiness"]),
-                    "reasoning": str(assessment["reasoning"]),
-                    "risk_flags": [str(x) for x in assessment["risk_flags"]],
-                }
-                outputs.append(output)
-                self._write_memory(output)
+        # --- Phase 2: one batch LLM call for all pairs ---
+        batch_assessments = self._assess_batch(
+            batch_items,
+            output_month,
+            prev_memory=prev_memory,
+        )
+
+        # --- Phase 3: assemble outputs ---
+        outputs: list[CustomerReadinessOutput] = []
+        for item in batch_items:
+            state = item["state"]
+            category = item["category"]
+            metrics = item["metrics"]
+            assessment = batch_assessments.get((state, category), self._fallback_assessment())
+
+            output: CustomerReadinessOutput = {
+                "agent": self.AGENT_NAME,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "state": state,
+                "category": category,
+                "month": output_month,
+                "avg_spend": self._safe_float(metrics["avg_spend"]),
+                "order_volume_trend": self._safe_float(metrics["order_volume_trend"]),
+                "top_payment_type": str(metrics["top_payment_type"] or "credit_card"),
+                "high_value_customer_count": int(metrics["high_value_customer_count"]),
+                "repeat_rate": self._safe_float(metrics["repeat_rate"]),
+                "installment_pct": self._safe_float(metrics["installment_pct"]),
+                "readiness": str(assessment["readiness"]),
+                "reasoning": str(assessment["reasoning"]),
+                "risk_flags": [str(x) for x in assessment["risk_flags"]],
+            }
+            outputs.append(output)
+            self._write_memory(output)
         return outputs
